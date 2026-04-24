@@ -1,0 +1,54 @@
+package vivo
+
+import (
+	"bytes"
+	"crypto/md5"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+)
+
+const (
+	SummaryQueryUrl = "https://marketing-api.vivo.com.cn/openapi/v1/adstatement/summary/query?access_token=%s&timestamp=%d&nonce=%s&advertiser_id=%s"
+)
+
+type SummaryQueryRequest struct {
+	StartDate   string `json:"startDate"`
+	EndDate     string `json:"endDate"`
+	PageIndex   int    `json:"pageIndex"`
+	PageSize    int    `json:"pageSize"`
+	SummaryType string `json:"summaryType"`
+	Level       string `json:"level"`
+}
+
+func SummaryQuery(req SummaryQueryRequest, AdvertiserId string) (map[string]interface{}, error) {
+	//accessToken, _ := GetVivoKeyInfo(ClientId)
+	//if accessToken == "" {
+	//	return nil, errors.New("vivo callback empty access token")
+	//}
+	accessToken := "ef4c46fe7db22bf9a2d7761764ce9792f0a2b0bc6a119fb2d077b021d6cf7224"
+
+	ms := time.Now().UnixNano() / 1e6
+	qid := QidWithUnixTime()
+
+	bts, _ := json.Marshal(req)
+	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
+	url := fmt.Sprintf(SummaryQueryUrl, accessToken, ms, nonce, AdvertiserId)
+	resp, err := http.Post(url, "Content-Type: application/json", bytes.NewBuffer(bts))
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	fmt.Println(string(result))
+
+	var response map[string]interface{}
+	err = json.Unmarshal(result, &response)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
