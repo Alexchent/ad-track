@@ -9,6 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const TraceIDKey = "traceID"
+const UserIDKey = "user_id"
+
 // RequestLogger 请求日志中间件，增加链路追踪
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -22,15 +25,12 @@ func RequestLogger() gin.HandlerFunc {
 		traceID := requestid.Get(c)
 
 		// 将traceID设置到gin上下文中，供后续handler使用
-		TraceIDKey := "traceID"
 		c.Set(TraceIDKey, traceID)
 
 		// 将traceID设置到request context中，供repository等层使用
 		ctx := context.WithValue(c.Request.Context(), TraceIDKey, traceID)
 		c.Request = c.Request.WithContext(ctx)
 
-		// 请求开始日志
-		slog.With(slog.String("trace_id", traceID))
 		// 处理请求
 		c.Next()
 
@@ -38,7 +38,7 @@ func RequestLogger() gin.HandlerFunc {
 		latency := time.Since(start) / time.Nanosecond
 		status := c.Writer.Status()
 
-		slog.Info("access",
+		slog.InfoContext(c.Request.Context(), "access",
 			slog.String("method", method),
 			slog.String("path", path),
 			slog.String("query", query),

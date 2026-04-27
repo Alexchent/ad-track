@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/Alexchent/ad-track/handler"
@@ -23,6 +24,7 @@ func register(router *gin.Engine) {
 
 func customizedRegister(router *gin.Engine) {
 	router.GET("/health", func(c *gin.Context) {
+		slog.InfoContext(c.Request.Context(), "health check")
 		c.String(http.StatusOK, "ok")
 	})
 
