@@ -1,10 +1,11 @@
 package vivo
 
 import (
-	"context"
+	"bytes"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -48,15 +49,24 @@ type BehaviorResponse struct {
 	Data    string `json:"data,omitempty"`
 }
 
-func BehaviorUpload(req string, accessToken string) (*BehaviorResponse, error) {
+func BehaviorUpload(req *BehaviorRequest, accessToken string) (*BehaviorResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
 	url := fmt.Sprintf(VivoCallbackUrlV2, accessToken, ms, nonce)
-	// 拼接 header
-	header := http.Header{}
-	header.Set("Content-Type", "application/json")
-	result, err := service.CallbackClientPost(context.Background(), url, []byte(req), header)
+
+	bts, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(bts))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	result, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +88,7 @@ func String(n int) string {
 		if remain == 0 {
 			cache, remain = src.Int63(), letterIdxMax
 		}
-		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+		if idx := int(cache & int64(letterIdxMask)); idx < len(letterBytes) {
 			b[i] = letterBytes[idx]
 			i--
 		}

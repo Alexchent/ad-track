@@ -19,9 +19,6 @@ func CORS() gin.HandlerFunc {
 
 		// 允许的来源（生产环境应限制为具体域名）
 		allowedOrigins := []string{
-			"https://mojian.zhulang.com",
-			"http://mojian.zhulang.com",
-			"https://www.zhulang.com",
 			"http://localhost:3000",
 			"http://localhost:8080",
 			"http://localhost:5173",

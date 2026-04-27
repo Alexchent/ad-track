@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,10 +22,8 @@ const (
 	cvTypeRetention6 = "RETENTION_6" //6日留存
 	cvTypeRetention7 = "RETENTION_7" //7日留存
 
-	userIdTypeOaid    = "OAID"     //行为数据上传 用户标识类型 oaid
-	userIdTypeOaidMd5 = "OAID_MD5" //oaid md5
-	userIdTypeImeiMd5 = "IMEI_MD5" //imei md5
-	userIdTypeImei    = "IMEI"     //imei md5
+	userIdTypeOaid = "OAID" //行为数据上传 用户标识类型 oaid
+	userIdTypeImei = "IMEI" //imei md5
 )
 
 const (
@@ -38,6 +37,10 @@ const (
 
 // GetAuthorizationCode vivo认证获取授权码
 func GetAuthorizationCode(c *gin.Context) {
+	code := c.Query("code")
+	if code == "" {
+		c.String(http.StatusUnauthorized, "authorization code not provided")
+	}
 	// 获取点击参数
 	svc := vivo.NewAdService(&vivo.Config{
 		ClientId:     "",
@@ -49,12 +52,7 @@ func GetAuthorizationCode(c *gin.Context) {
 		c.String(http.StatusOK, msg)
 		return
 	}
-	//if response == nil {
-	//	msg := fmt.Sprintf("get vivo access token failed")
-	//	c.String(http.StatusOK, msg)
-	//	return
-	//}
-	err = svc.SaveAccessToken(response.Data)
+	err = svc.SaveAccessToken(c.Request.Context(), response.Data)
 	if err != nil {
 		msg := fmt.Sprintf("vivo save access token failed %s", err.Error())
 		c.String(http.StatusOK, msg)
@@ -81,9 +79,10 @@ func ProcessVIVOClick(c *gin.Context) {
 
 type VivoApi struct {
 	svc *vivo.AdService
+	ctx context.Context
 }
 
-type VivoRequest struct {
+type BehaviorRequest struct {
 	SrcType string     `json:"srcType,omitempty"`
 	PkgName string     `json:"pkgName,omitempty"`
 	SrcId   string     `json:"srcId,omitempty"` // 源ID
@@ -111,6 +110,7 @@ func (v *VivoApi) Retain2(data map[string]string) error {
 }
 
 func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error {
+	ctx := v.ctx
 	if d[Oaid] == "" && d[Imei] == "" {
 		return errors.New("device id is empty")
 	}
@@ -121,29 +121,29 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 	}
 	userid := d[AppUid]
 
-	accessToken, _ := v.svc.GetVivoToken(advertiserId)
+	accessToken, _ := v.svc.GetVivoToken(ctx, advertiserId)
 	if accessToken == "" {
 		return errors.New("vivo callback empty access token")
 	}
 
-	req := VivoRequest{
+	req := vivo.BehaviorRequest{
 		SrcType: "APP",
 		PkgName: d[PkgName],
 		SrcId:   "", // todo 配置中获取
 	}
 	ms := time.Now().UnixNano() / 1e6
-	obj := &DataList{
+	obj := &vivo.DataList{
 		UserIdType: userIdTypeOaid,
 		UserId:     d[Oaid],
 		ClickId:    d["ClickId"],
 		CvType:     uType,
 		CvTime:     ms,
 	}
-	req.Data = []DataList{*obj}
+	req.Data = []vivo.DataList{*obj}
 
 	bts, _ := json.Marshal(req)
 
-	response, err := vivo.BehaviorUpload(string(bts), accessToken)
+	response, err := vivo.BehaviorUpload(&req, accessToken)
 	if err != nil {
 		return err
 	}

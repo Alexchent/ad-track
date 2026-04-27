@@ -1,7 +1,8 @@
 package middleware
 
 import (
-	"ai-server/app"
+	"context"
+	"log/slog"
 	"time"
 
 	"github.com/gin-contrib/requestid"
@@ -22,26 +23,16 @@ func RequestLogger() gin.HandlerFunc {
 		traceID := requestid.Get(c)
 
 		// 将traceID设置到gin上下文中，供后续handler使用
-		c.Set(string(app.TraceIDKey), traceID)
+		TraceIDKey := "traceID"
+		c.Set(TraceIDKey, traceID)
 
 		// 将traceID设置到request context中，供repository等层使用
-		ctx := app.SetTraceID(c.Request.Context(), traceID)
+		ctx := context.WithValue(c.Request.Context(), TraceIDKey, traceID)
 		c.Request = c.Request.WithContext(ctx)
 
 		// 请求开始日志
-		app.GetLogger().With(zap.String("trace_id", traceID))
-		if query != "" {
-			app.LogInfo(c.Request.Context(), "请求开始",
-				zap.String("method", method),
-				zap.String("path", path),
-				zap.String("query", query),
-				zap.String("client_ip", clientIP))
-		} else {
-			app.LogInfo(c.Request.Context(), "请求开始",
-				zap.String("method", method),
-				zap.String("path", path),
-				zap.String("client_ip", clientIP))
-		}
+		traceLog := slog.With(zap.String("trace_id", traceID))
+		slog.SetDefault(traceLog)
 
 		// 处理请求
 		c.Next()
@@ -50,10 +41,13 @@ func RequestLogger() gin.HandlerFunc {
 		latency := time.Since(start)
 		status := c.Writer.Status()
 
-		app.LogInfo(c.Request.Context(), "请求结束",
+		slog.Info("access",
 			zap.String("method", method),
 			zap.String("path", path),
+			zap.String("query", query),
+			zap.String("client_ip", clientIP),
 			zap.Int("status", status),
-			zap.Duration("latency", latency))
+			zap.Duration("latency", latency),
+		)
 	}
 }

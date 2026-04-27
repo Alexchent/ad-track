@@ -1,6 +1,7 @@
 package vivo
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -103,14 +104,14 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 //}
 
 // SaveAccessToken 根据Authorization Code 生成token
-func (a *AdService) SaveAccessToken(token AdvertiserToken) error {
+func (a *AdService) SaveAccessToken(ctx context.Context, token AdvertiserToken) error {
 	// 获取 广告主uuid
 	advertiser, err := queryVivoAdvertiser(token.AccessToken)
 	if err != nil {
 		return err
 	}
 	advertiserId := advertiser.Data.UUID
-	if err := a.SaveTokenToRedis(advertiserId, &token); err != nil {
+	if err := a.SaveTokenToRedis(ctx, advertiserId, &token); err != nil {
 		return err
 	}
 	return nil
@@ -125,7 +126,7 @@ func getTokenRedisKey(clientId string, advertiserId string) string {
 // SaveTokenToRedis 保存单个广告主的token信息到Redis
 // Redis结构: key=vivo_token_{clientId}_{advertiserId}, value=JSON(AdvertiserToken)
 // 根据RefreshTokenDate设置key的独立过期时间
-func (a *AdService) SaveTokenToRedis(advertiserId string, tokenInfo *AdvertiserToken) error {
+func (a *AdService) SaveTokenToRedis(ctx context.Context, advertiserId string, tokenInfo *AdvertiserToken) error {
 	clientId := a.c.ClientId
 	key := getTokenRedisKey(clientId, advertiserId)
 	jsonData, err := json.Marshal(tokenInfo)
@@ -135,7 +136,7 @@ func (a *AdService) SaveTokenToRedis(advertiserId string, tokenInfo *AdvertiserT
 
 	var saveErr error
 	for i := 0; i < 3; i++ {
-		saveErr = a.redisClient.Set(key, string(jsonData), 0).Err()
+		saveErr = a.redisClient.Set(ctx, key, string(jsonData), 0).Err()
 		if saveErr == nil {
 			break
 		}
@@ -151,7 +152,7 @@ func (a *AdService) SaveTokenToRedis(advertiserId string, tokenInfo *AdvertiserT
 		remainingMs := tokenInfo.RefreshTokenDate - nowMs
 		if remainingMs > 0 {
 			newTTL := time.Duration(remainingMs) * time.Millisecond
-			a.redisClient.Expire(key, newTTL)
+			a.redisClient.Expire(ctx, key, newTTL)
 		}
 	}
 
@@ -159,7 +160,7 @@ func (a *AdService) SaveTokenToRedis(advertiserId string, tokenInfo *AdvertiserT
 }
 
 // RefreshToken 使用refresh_token刷新access_token
-func (a *AdService) RefreshToken(refreshToken string, advertiserId string) (*AdvertiserToken, error) {
+func (a *AdService) RefreshToken(ctx context.Context, refreshToken string, advertiserId string) (*AdvertiserToken, error) {
 	url := fmt.Sprintf(RefreshVivoTokenUrl, a.c.ClientId, a.c.ClientSecret, refreshToken)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -188,7 +189,7 @@ func (a *AdService) RefreshToken(refreshToken string, advertiserId string) (*Adv
 
 	// 保存新的token到Redis统一存储
 	tokenInfo := &response.Data
-	if err := a.SaveTokenToRedis(advertiserId, tokenInfo); err != nil {
+	if err := a.SaveTokenToRedis(ctx, advertiserId, tokenInfo); err != nil {
 		return tokenInfo, err
 	}
 	return tokenInfo, nil
@@ -210,11 +211,11 @@ func isTokenExpired(tokenDate int64) bool {
 // GetVivoToken 获取指定广告主的access_token和refresh_token（带自动刷新）
 // clientId: 开发者账号ID
 // advertiserId: 广告主账号ID
-func (a *AdService) GetVivoToken(advertiserId string) (string, string) {
+func (a *AdService) GetVivoToken(ctx context.Context, advertiserId string) (string, string) {
 	clientId := a.c.ClientId
 	key := getTokenRedisKey(clientId, advertiserId)
 	for i := 0; i < 3; i++ {
-		data, err := a.redisClient.Get(key).Result()
+		data, err := a.redisClient.Get(ctx, key).Result()
 		if err == nil && data != "" {
 			tokenInfo := &AdvertiserToken{}
 			if jsonErr := json.Unmarshal([]byte(data), tokenInfo); jsonErr == nil {

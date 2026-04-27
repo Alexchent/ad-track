@@ -3,15 +3,20 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Alexchent/ad-track/config"
+	"github.com/Alexchent/ad-track/middleware"
 	"github.com/fvbock/endless"
 	"github.com/zeromicro/go-zero/core/conf"
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var configFile = flag.String("f", "conf.yaml", "the config file")
@@ -21,9 +26,11 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	setupLogger(c.Log)
 
 	router := gin.New()
 	router.Use(requestid.New())
+	router.Use(middleware.RequestLogger())
 	//router.Use(middleware.PrometheusMetrics())
 	router.Use(gin.Recovery())
 
@@ -32,7 +39,7 @@ func main() {
 	//	middleware.InitRateLimiter(c.RateLimit.Rate, c.RateLimit.Capacity)
 	//	router.Use(middleware.RateLimit())
 	//}
-	//register(router)
+	register(router)
 
 	// 使用 endless 实现平滑重启
 	// 支持 SIGHUP 信号进行平滑重启，SIGTERM/SIGINT 信号进行优雅关闭
@@ -51,4 +58,51 @@ func main() {
 			fmt.Println("服务错误")
 		}
 	}
+}
+
+func setupLogger(conf config.Logger) *slog.Logger {
+	// 配置日志轮转
+	logRotate := &lumberjack.Logger{
+		Filename:   conf.Filename,
+		MaxSize:    conf.MaxSize, // MB
+		MaxBackups: 3,
+		MaxAge:     conf.MaxAge, // days
+		Compress:   conf.Compress,
+	}
+
+	logLevel := slog.LevelInfo
+	switch strings.ToLower(conf.Level) {
+	case "debug":
+		logLevel = slog.LevelDebug
+	case "info":
+		logLevel = slog.LevelInfo
+	case "warn":
+		logLevel = slog.LevelWarn
+	case "error":
+		logLevel = slog.LevelError
+	case "fatal":
+		logLevel = slog.LevelError
+	default:
+		logLevel = slog.LevelInfo
+	}
+
+	// 自定义日志格式
+	opts := &slog.HandlerOptions{
+		Level: logLevel,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			// 自定义时间格式
+			if a.Key == slog.TimeKey {
+				if t, ok := a.Value.Any().(time.Time); ok {
+					a.Value = slog.StringValue(t.Format(time.RFC3339))
+				}
+			}
+			return a
+		},
+	}
+
+	// 同时输出到文件和控制台
+	multiWriter := io.MultiWriter(logRotate, os.Stdout)
+
+	// 创建JSON格式的logger
+	return slog.New(slog.NewJSONHandler(multiWriter, opts))
 }

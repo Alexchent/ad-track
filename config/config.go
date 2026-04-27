@@ -6,8 +6,7 @@ type Config struct {
 	Redis RedisConfig
 	MySQL MySQLConfig
 	Log   Logger
-	//RateLimit RateLimitConfig // 限流配置
-	VIVO VIVOConfig
+	VIVO  VIVOConfig
 }
 
 type App struct {
@@ -32,18 +31,11 @@ type ESConfig struct {
 
 type Logger struct {
 	Filename string
-	// Encoding sets the logger's encoding. Valid values are "json" and
-	// "console", as well as any third-party encodings registered via
-	// RegisterEncoder.
 	Encoding string `json:",optional"`
 	Level    string `json:",optional"`
 	MaxSize  int
 	MaxAge   int
 	Compress bool
-	// RotateStrategy 日志轮转策略: "rotatelogs" 或 "lumberjack"
-	// - rotatelogs: 使用 github.com/lestrrat-go/file-rotatelogs，按天轮转
-	// - lumberjack: 使用 gopkg.in/natefinch/lumberjack.v2，按大小轮转
-	RotateStrategy string `json:",optional"`
 }
 
 // RateLimitConfig 限流配置
