@@ -46,6 +46,12 @@ type RateLimitConfig struct {
 }
 
 type VIVOConfig struct {
-	ClientId     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
+	ClientId     string            `json:"client_id"`
+	ClientSecret string            `json:"client_secret"`
+	APP          map[string]string `json:"APP"`
 }
+
+//type VAPP struct {
+//	PkgName string `json:"pkgName"`
+//	SrcId   string `json:"srcId"`
+//}

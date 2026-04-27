@@ -5,15 +5,16 @@ import (
 	"net/http"
 
 	"github.com/Alexchent/ad-track/handler"
+	"github.com/Alexchent/ad-track/svc"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-func register(router *gin.Engine) {
+func register(router *gin.Engine, svcCtx *svc.ServiceContext) {
 	customizedRegister(router)
 
 	vivo := router.Group("/vivo")
-	vivo.GET("auth", handler.GetAuthorizationCode)
+	vivo.GET("auth", handler.GetAuthorizationCode(svcCtx))
 	// 监测链接
 	vivo.POST("click", handler.ProcessVIVOClick)
 	// 归因

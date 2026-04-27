@@ -9,6 +9,7 @@ import (
 	"github.com/Alexchent/ad-track/config"
 	"github.com/Alexchent/ad-track/middleware"
 	"github.com/Alexchent/ad-track/pkg/logger"
+	"github.com/Alexchent/ad-track/svc"
 	"github.com/fvbock/endless"
 	"github.com/zeromicro/go-zero/core/conf"
 
@@ -32,6 +33,9 @@ func main() {
 		MaxAge:   c.Log.MaxAge,
 		Compress: c.Log.Compress,
 	})
+
+	svcCtx := svc.NewServiceContext(c)
+
 	router := gin.New()
 	router.Use(requestid.New())
 	router.Use(middleware.RequestLogger())
@@ -43,7 +47,7 @@ func main() {
 	//	middleware.InitRateLimiter(c.RateLimit.Rate, c.RateLimit.Capacity)
 	//	router.Use(middleware.RateLimit())
 	//}
-	register(router)
+	register(router, svcCtx)
 
 	// 使用 endless 实现平滑重启
 	// 支持 SIGHUP 信号进行平滑重启，SIGTERM/SIGINT 信号进行优雅关闭
