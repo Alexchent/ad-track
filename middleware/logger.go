@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 // RequestLogger 请求日志中间件，增加链路追踪
@@ -31,23 +30,21 @@ func RequestLogger() gin.HandlerFunc {
 		c.Request = c.Request.WithContext(ctx)
 
 		// 请求开始日志
-		traceLog := slog.With(zap.String("trace_id", traceID))
-		slog.SetDefault(traceLog)
-
+		slog.With(slog.String("trace_id", traceID))
 		// 处理请求
 		c.Next()
 
 		// 请求结束日志
-		latency := time.Since(start)
+		latency := time.Since(start) / time.Nanosecond
 		status := c.Writer.Status()
 
 		slog.Info("access",
-			zap.String("method", method),
-			zap.String("path", path),
-			zap.String("query", query),
-			zap.String("client_ip", clientIP),
-			zap.Int("status", status),
-			zap.Duration("latency", latency),
+			slog.String("method", method),
+			slog.String("path", path),
+			slog.String("query", query),
+			slog.String("client_ip", clientIP),
+			slog.Int("status", status),
+			slog.String("latency", latency.String()),
 		)
 	}
 }

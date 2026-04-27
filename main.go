@@ -60,7 +60,7 @@ func main() {
 	}
 }
 
-func setupLogger(conf config.Logger) *slog.Logger {
+func setupLogger(conf config.Logger) {
 	// 配置日志轮转
 	logRotate := &lumberjack.Logger{
 		Filename:   conf.Filename,
@@ -104,5 +104,15 @@ func setupLogger(conf config.Logger) *slog.Logger {
 	multiWriter := io.MultiWriter(logRotate, os.Stdout)
 
 	// 创建JSON格式的logger
-	return slog.New(slog.NewJSONHandler(multiWriter, opts))
+	var handler slog.Handler
+	switch strings.ToLower(conf.Encoding) {
+	case "console":
+		handler = slog.NewTextHandler(multiWriter, opts)
+	case "json":
+		handler = slog.NewJSONHandler(multiWriter, opts)
+	default:
+		handler = slog.NewJSONHandler(multiWriter, opts)
+	}
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
 }
