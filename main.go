@@ -39,14 +39,7 @@ func main() {
 	router := gin.New()
 	router.Use(requestid.New())
 	router.Use(middleware.RequestLogger())
-	//router.Use(middleware.PrometheusMetrics())
 	router.Use(gin.Recovery())
-
-	// 初始化并应用限流中间件
-	//if c.RateLimit.Enabled {
-	//	middleware.InitRateLimiter(c.RateLimit.Rate, c.RateLimit.Capacity)
-	//	router.Use(middleware.RateLimit())
-	//}
 	register(router, svcCtx)
 
 	// 使用 endless 实现平滑重启
