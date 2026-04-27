@@ -16,7 +16,7 @@ func register(router *gin.Engine, svcCtx *svc.ServiceContext) {
 	vivo := router.Group("/vivo")
 	vivo.GET("auth", handler.GetAuthorizationCode(svcCtx))
 	// 监测链接
-	vivo.POST("click", handler.ProcessVIVOClick)
+	vivo.POST("click", handler.ProcessVIVOClick(svcCtx))
 	// 归因
 	router.GET("/report", func(context *gin.Context) {
 		// 通过设备信息，如：oaid 等匹配监测到的点击数据，判断归因的媒体，最后将激活、留存等行为上报给对应的媒体

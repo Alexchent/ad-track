@@ -45,7 +45,7 @@ func ProcessVIVOClick(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 			return
 		}
 		body = append(body, map[string]interface{}{"channel": channel})
-		// todo 保存点击数据，归因时使用
+		// todo redis 保存点击数据，用 oaid 做key
 
 		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "操作成功"})
 	}
