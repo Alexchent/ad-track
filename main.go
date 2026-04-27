@@ -24,7 +24,6 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
-	//setupLogger(c.Log)
 	logger.SetupLogger(&logger.LogConfig{
 		Filename: c.Log.Filename,
 		Encoding: c.Log.Encoding,
