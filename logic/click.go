@@ -49,6 +49,18 @@ func (c *Click) SaveData(ctx context.Context, deviceKey string, data map[string]
 	return c.cache.Expire(ctx, key, clickTTL).Err()
 }
 
+func (c *Click) GetData(ctx context.Context, deviceKey string) (map[string]string, error) {
+	if deviceKey == "" {
+		return nil, fmt.Errorf("key is empty")
+	}
+
+	data, err := c.cache.HGetAll(ctx, ClickKeyPrefix+deviceKey).Result()
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
 func stringifyRedisValue(v interface{}) string {
 	switch val := v.(type) {
 	case nil:

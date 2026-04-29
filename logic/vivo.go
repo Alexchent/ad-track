@@ -96,9 +96,15 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 		SrcId:   srcId,
 	}
 	ms := time.Now().UnixNano() / 1e6
+	userIdType := userIdTypeOaid
+	userId := d[Oaid]
+	if userId == "" {
+		userIdType = userIdTypeImei
+		userId = d[Imei]
+	}
 	obj := &vivo.DataList{
-		UserIdType: userIdTypeOaid,
-		UserId:     d[Oaid],
+		UserIdType: userIdType,
+		UserId:     userId,
 		ClickId:    d["ClickId"],
 		CvType:     uType,
 		CvTime:     ms,
