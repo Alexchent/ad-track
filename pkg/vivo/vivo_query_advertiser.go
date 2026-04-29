@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-type VivoAdvertiserQueryRequest struct {
+type AdvertiserQueryRequest struct {
 	PageIndex int `json:"pageIndex"`
 	PageSize  int `json:"pageSize"`
 }
 
-type VivoAdvertiserQueryResponse struct {
-	Code    int64              `json:"code,omitempty"`
-	Message string             `json:"message,omitempty"`
-	Data    VivoAdvertiserInfo `json:"data,omitempty"`
+type AdvertiserQueryResponse struct {
+	Code    int64          `json:"code,omitempty"`
+	Message string         `json:"message,omitempty"`
+	Data    AdvertiserInfo `json:"data,omitempty"`
 }
 
-type VivoAdvertiserInfo struct {
+type AdvertiserInfo struct {
 	UUID        string `json:"uuid"`
 	Name        string `json:"name"`
 	CompanyName string `json:"companyName"`
@@ -28,7 +28,7 @@ type VivoAdvertiserInfo struct {
 	ShowName    string `json:"showName"`
 }
 
-func queryVivoAdvertiser(accessToken string) (*VivoAdvertiserQueryResponse, error) {
+func queryVivoAdvertiser(accessToken string) (*AdvertiserQueryResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
@@ -49,7 +49,7 @@ func queryVivoAdvertiser(accessToken string) (*VivoAdvertiserQueryResponse, erro
 
 	//fmt.Println(string(result))
 
-	response := &VivoAdvertiserQueryResponse{}
+	response := &AdvertiserQueryResponse{}
 	if err := json.Unmarshal(result, response); err != nil {
 		return nil, err
 	}

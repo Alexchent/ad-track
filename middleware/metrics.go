@@ -37,43 +37,6 @@ var (
 		},
 		[]string{"method", "path"},
 	)
-
-	// 文件上传大小
-	fileUploadSize = promauto.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "file_upload_size_bytes",
-			Help:    "文件上传大小（字节）",
-			Buckets: []float64{1024, 10 * 1024, 100 * 1024, 1024 * 1024, 10 * 1024 * 1024, 100 * 1024 * 1024},
-		},
-		[]string{"extension"},
-	)
-
-	// 任务提交计数
-	taskSubmitTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "task_submit_total",
-			Help: "任务提交总数",
-		},
-		[]string{"tp_id", "workflow_id"},
-	)
-
-	// 任务状态计数
-	taskStatusTotal = promauto.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "task_status_current",
-			Help: "当前各状态的任务数",
-		},
-		[]string{"status"},
-	)
-
-	// 认证计数
-	authTotal = promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "auth_total",
-			Help: "认证请求总数",
-		},
-		[]string{"type", "status"},
-	)
 )
 
 // PrometheusMetrics Prometheus指标中间件
@@ -102,31 +65,4 @@ func PrometheusMetrics() gin.HandlerFunc {
 		httpRequestsTotal.WithLabelValues(method, path, status).Inc()
 		httpRequestDuration.WithLabelValues(method, path).Observe(duration)
 	}
-}
-
-// RecordFileUpload 记录文件上传指标
-func RecordFileUpload(extension string, size int64) {
-	fileUploadSize.WithLabelValues(extension).Observe(float64(size))
-}
-
-// RecordTaskSubmit 记录任务提交指标
-func RecordTaskSubmit(tpID, workflowID int) {
-	taskSubmitTotal.WithLabelValues(
-		strconv.Itoa(tpID),
-		strconv.Itoa(workflowID),
-	).Inc()
-}
-
-// UpdateTaskStatus 更新任务状态指标
-func UpdateTaskStatus(status string, count float64) {
-	taskStatusTotal.WithLabelValues(status).Set(count)
-}
-
-// RecordAuth 记录认证指标
-func RecordAuth(authType string, success bool) {
-	status := "success"
-	if !success {
-		status = "failed"
-	}
-	authTotal.WithLabelValues(authType, status).Inc()
 }

@@ -23,13 +23,7 @@ type SummaryQueryRequest struct {
 	Level       string `json:"level"`
 }
 
-func SummaryQuery(req SummaryQueryRequest, AdvertiserId string) (map[string]interface{}, error) {
-	//accessToken, _ := GetVivoKeyInfo(ClientId)
-	//if accessToken == "" {
-	//	return nil, errors.New("vivo callback empty access token")
-	//}
-	accessToken := "ef4c46fe7db22bf9a2d7761764ce9792f0a2b0bc6a119fb2d077b021d6cf7224"
-
+func SummaryQuery(req SummaryQueryRequest, accessToken, AdvertiserId string) (map[string]interface{}, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 

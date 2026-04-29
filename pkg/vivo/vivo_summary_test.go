@@ -19,7 +19,7 @@ func TestSummaryQuery(t *testing.T) {
 			//Level:       "CAMPAIGN",
 			Level: "ACCOUNT",
 		}
-		_, err := SummaryQuery(res, "")
+		_, err := SummaryQuery(res, "", "")
 		if err != nil {
 			t.Fatalf("query fail %s", err.Error())
 		}

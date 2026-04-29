@@ -73,36 +73,6 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 	return response, nil
 }
 
-//func GetAccessToken(code string) (*VivoRepsonse, error) {
-//	url := fmt.Sprintf(GetVivoTokenUrl, ClientId, Secret, code)
-//	resp, err := http.Get(url)
-//	if err != nil {
-//		msg := "send http to get vivo token request fail"
-//		return nil, errors.New(msg)
-//	}
-//	defer resp.Body.Close()
-//
-//	data, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		msg := "read vivo token response fail," + err.Error()
-//		return nil, errors.New(msg)
-//	}
-//
-//	response := &VivoRepsonse{}
-//	err = json.Unmarshal(data, response)
-//	if err != nil {
-//		msg := "json unmarshal  vivo struct fail," + err.Error()
-//		return nil, errors.New(msg)
-//	}
-//
-//	if response.Code != 0 {
-//		msg := "vivo get toekn failed error message: " + response.Message
-//		return nil, errors.New(msg)
-//	}
-//
-//	return response, nil
-//}
-
 // SaveAccessToken 根据Authorization Code 生成token
 func (a *AdService) SaveAccessToken(ctx context.Context, token AdvertiserToken) error {
 	// 获取 广告主uuid
