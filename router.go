@@ -13,10 +13,10 @@ import (
 func register(router *gin.Engine, svcCtx *svc.ServiceContext) {
 	customizedRegister(router)
 
-	vivo := router.Group("/vivo")
-	vivo.GET("auth", handler.GetAuthorizationCode(svcCtx))
+	router.GET("/vivo/auth", handler.GetAuthorizationCode(svcCtx))
 	// 监测链接
-	vivo.POST("click/vivo", handler.ProcessVIVOClick(svcCtx))
+	router.Any("/click", handler.ProcessClick(svcCtx))
+	router.POST("/vivo/click", handler.ProcessVIVOClick(svcCtx))
 	// 归因
 	router.GET("/report", handler.AttributeReport(svcCtx))
 }

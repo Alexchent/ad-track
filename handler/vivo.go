@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Alexchent/ad-track/logic"
 	"github.com/Alexchent/ad-track/svc"
 	"github.com/gin-gonic/gin"
 )
@@ -33,19 +34,53 @@ func GetAuthorizationCode(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 	}
 }
 
-// ProcessVIVOClick 接收oppo点击数据
+func ProcessClick(svcCtx *svc.ServiceContext) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// todo 获取点击参数, 兼容get和post
+
+		// todo redis 保存点击数据，用 oaid 做key, 有效期7天
+
+		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "操作成功"})
+	}
+}
+
+// ProcessVIVOClick oppo服务端点击监测 https://ad.vivo.com.cn/help?id=352
 func ProcessVIVOClick(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 获取点击参数
-		channel, _ := c.GetQuery("channel")
+		channel := c.Query("channel")
 
 		var body []map[string]interface{}
 		if err := c.ShouldBindJSON(&body); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"code": 1, "msg": err.Error()})
 			return
 		}
-		body = append(body, map[string]interface{}{"channel": channel})
-		// todo redis 保存点击数据，用 oaid 做key, 有效期7天
+
+		logicSvc := logic.NewClick(svcCtx.Config)
+		for _, item := range body {
+			item[logic.Channel] = channel
+
+			oaid, _ := item[logic.Oaid].(string)
+			imei, _ := item[logic.Imei].(string)
+			if oaid == "" && imei == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"code": 1, "msg": "oaid and imei are empty"})
+				return
+			}
+
+			if oaid != "" {
+				if err := logicSvc.SaveData(c.Request.Context(), oaid, item); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 1, "msg": err.Error()})
+					return
+				}
+			}
+
+			if imei != "" {
+				if err := logicSvc.SaveData(c.Request.Context(), imei, item); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"code": 1, "msg": err.Error()})
+					return
+				}
+			}
+		}
 
 		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "操作成功"})
 	}

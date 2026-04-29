@@ -113,7 +113,7 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 	}
 	if response.Code != 0 {
 		message := fmt.Sprintf("VIVO behaviorUpload fail: type-[%v], uid-[%v], params-[%s], code=%d, msg=%s", uType, userid, string(bts), response.Code, response.Message)
-		return fmt.Errorf(message)
+		return fmt.Errorf("%s", message)
 	}
 	return nil
 }
