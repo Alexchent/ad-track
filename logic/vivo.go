@@ -21,8 +21,10 @@ const (
 	cvTypeRetention6 = "RETENTION_6" //6日留存
 	cvTypeRetention7 = "RETENTION_7" //7日留存
 
-	userIdTypeOaid = "OAID" //行为数据上传 用户标识类型 oaid
-	userIdTypeImei = "IMEI" //imei md5
+	userIdTypeOaid    = "OAID"     // oaid 明文
+	userIdTypeOaidMD5 = "OAID_MD5" // oaid md5
+	userIdTypeImei    = "IMEI"     // imei 明文
+	userIdTypeImeiMD5 = "IMEI_MD5" // imei md5
 )
 
 const (
@@ -68,6 +70,24 @@ func (v *VivoApi) getSrcId(pkgName string) string {
 	return src
 }
 
+func getVivoUserID(d map[string]string) (string, string) {
+	if d[Oaid] != "" {
+		if len(d[Oaid]) == 32 {
+			return userIdTypeOaidMD5, d[Oaid]
+		}
+		return userIdTypeOaid, d[Oaid]
+	}
+
+	if d[Imei] != "" {
+		if len(d[Imei]) == 32 {
+			return userIdTypeImeiMD5, d[Imei]
+		}
+		return userIdTypeImei, d[Imei]
+	}
+
+	return "", ""
+}
+
 func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error {
 	ctx := v.ctx
 	if d[Oaid] == "" && d[Imei] == "" {
@@ -96,16 +116,15 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 		SrcId:   srcId,
 	}
 	ms := time.Now().UnixNano() / 1e6
-	userIdType := userIdTypeOaid
-	userId := d[Oaid]
-	if userId == "" {
-		userIdType = userIdTypeImei
-		userId = d[Imei]
+	userIdType, userId := getVivoUserID(d)
+	clickID := d["clickId"]
+	if clickID == "" {
+		clickID = d["ClickId"]
 	}
 	obj := &vivo.DataList{
 		UserIdType: userIdType,
 		UserId:     userId,
-		ClickId:    d["ClickId"],
+		ClickId:    clickID,
 		CvType:     uType,
 		CvTime:     ms,
 	}

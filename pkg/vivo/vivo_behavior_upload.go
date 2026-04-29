@@ -36,7 +36,7 @@ type BehaviorRequest struct {
 }
 
 type DataList struct {
-	UserIdType string `json:"userIdType,omitempty"`
+	UserIdType string `json:"userIdType,omitempty"` // 用户标识类型, 枚举值 IMEI/IMEI_MD5/OAID/OAID_MD5/OTHER/OPENID/INSTALL_REFERRER
 	UserId     string `json:"userId,omitempty"`
 	CvType     string `json:"cvType,omitempty"`
 	CvTime     int64  `json:"cvTime,omitempty"`
