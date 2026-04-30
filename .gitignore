@@ -1,7 +1,6 @@
 .idea
 .DS_Store
 .gitmodules
-*.yaml
 /etc
 /storage
 /logs
