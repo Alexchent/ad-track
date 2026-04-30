@@ -15,7 +15,6 @@ func register(router *gin.Engine, svcCtx *svc.ServiceContext) {
 
 	router.GET("/vivo/auth", handler.GetAuthorizationCode(svcCtx))
 	// 监测链接
-	router.Any("/click", handler.ProcessClick(svcCtx))
 	router.POST("/vivo/click", handler.ProcessVIVOClick(svcCtx))
 	// 归因
 	router.GET("/report", handler.AttributeReport(svcCtx))

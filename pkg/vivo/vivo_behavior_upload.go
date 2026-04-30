@@ -13,19 +13,12 @@ import (
 )
 
 var (
-	VIVO_MARKET_HOST       = "https://marketing-api.vivo.com.cn/openapi"
-	GetVivoTokenUrl        = VIVO_MARKET_HOST + "/v1/oauth2/token?client_id=%s&client_secret=%s&grant_type=code&code=%s"
-	RefreshVivoTokenUrl    = VIVO_MARKET_HOST + "/v1/oauth2/refreshToken?client_id=%s&client_secret=%s&refresh_token=%s"
-	VivoAdvertiserQueryUrl = VIVO_MARKET_HOST + "/v1/account/fetch?access_token=%s&timestamp=%d&nonce=%s"
-	VivoCallbackUrlV2      = VIVO_MARKET_HOST + "/v2/advertiser/behavior/upload?access_token=%s&timestamp=%d&nonce=%s"
-
 	// token刷新提前量：5分钟（毫秒），在token过期前5分钟自动刷新
 	tokenRefreshBuffer int64 = 300000
-
-	letterBytes   = "abcdef6789abcdefABCDEF67890123456789abcdef67890123ABCDEFabcdef"
-	letterIdxBits = 6                    // 6 bits to represent a letter index
-	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
-	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	letterBytes              = "abcdef6789abcdefABCDEF67890123456789abcdef67890123ABCDEFabcdef"
+	letterIdxBits            = 6                    // 6 bits to represent a letter index
+	letterIdxMask            = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax             = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
 
 type BehaviorRequest struct {
