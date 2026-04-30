@@ -4,7 +4,6 @@ type Config struct {
 	//rest.RestConf
 	App
 	Redis RedisConfig
-	MySQL MySQLConfig
 	Log   Logger
 	VIVO  VIVOConfig
 }
@@ -19,10 +18,6 @@ type RedisConfig struct {
 	Addr     string `json:"addr"`
 	Password string `json:"password"`
 	Db       int    `json:"db"`
-}
-
-type MySQLConfig struct {
-	DSN string `json:"dsn"`
 }
 
 type ESConfig struct {
@@ -52,8 +47,3 @@ type VIVOConfig struct {
 	ClientSecret string            `json:"client_secret"`
 	APP          map[string]string `json:"APP"`
 }
-
-//type VAPP struct {
-//	PkgName string `json:"pkgName"`
-//	SrcId   string `json:"srcId"`
-//}
