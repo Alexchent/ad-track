@@ -81,12 +81,12 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 // SaveAccessToken 根据Authorization Code 生成token
 func (a *AdService) SaveAccessToken(ctx context.Context, token AdvertiserToken) error {
 	// 获取 广告主uuid
-	advertiser, err := queryVivoAdvertiser(a.c.Host, token.AccessToken)
+	advertiser, err := queryAdvertiser(a.c.Host, token.AccessToken)
 	if err != nil {
 		return err
 	}
 	advertiserId := advertiser.Data.UUID
-	if err := a.SaveTokenToRedis(ctx, advertiserId, &token); err != nil {
+	if err := a.saveTokenToRedis(ctx, advertiserId, &token); err != nil {
 		return err
 	}
 	return nil
@@ -98,10 +98,10 @@ func getTokenRedisKey(clientId string, advertiserId string) string {
 	return fmt.Sprintf("vivo_token_%s_%s", clientId, advertiserId)
 }
 
-// SaveTokenToRedis 保存单个广告主的token信息到Redis
+// saveTokenToRedis 保存单个广告主的token信息到Redis
 // Redis结构: key=vivo_token_{clientId}_{advertiserId}, value=JSON(AdvertiserToken)
 // 根据RefreshTokenDate设置key的独立过期时间
-func (a *AdService) SaveTokenToRedis(ctx context.Context, advertiserId string, tokenInfo *AdvertiserToken) error {
+func (a *AdService) saveTokenToRedis(ctx context.Context, advertiserId string, tokenInfo *AdvertiserToken) error {
 	clientId := a.c.ClientId
 	key := getTokenRedisKey(clientId, advertiserId)
 	jsonData, err := json.Marshal(tokenInfo)
@@ -121,7 +121,7 @@ func (a *AdService) SaveTokenToRedis(ctx context.Context, advertiserId string, t
 		return saveErr
 	}
 
-	// 根据RefreshTokenDate设置key的独立过期时间
+	// 根据 RefreshTokenDate 设置key的独立过期时间
 	if tokenInfo.RefreshTokenDate > 0 {
 		nowMs := time.Now().UnixNano() / 1e6
 		remainingMs := tokenInfo.RefreshTokenDate - nowMs
@@ -162,9 +162,9 @@ func (a *AdService) RefreshToken(ctx context.Context, refreshToken string, adver
 		return nil, errors.New(msg)
 	}
 
-	// 保存新的token到Redis统一存储
+	// 保存新的 token 到Redis统一存储
 	tokenInfo := &response.Data
-	if err := a.SaveTokenToRedis(ctx, advertiserId, tokenInfo); err != nil {
+	if err := a.saveTokenToRedis(ctx, advertiserId, tokenInfo); err != nil {
 		return tokenInfo, err
 	}
 	return tokenInfo, nil
@@ -183,10 +183,10 @@ func isTokenExpired(tokenDate int64) bool {
 	return nowMs >= tokenDate-tokenRefreshBuffer
 }
 
-// GetVivoToken 获取指定广告主的access_token和refresh_token（带自动刷新）
+// GetToken 获取指定广告主的access_token和refresh_token（带自动刷新）
 // clientId: 开发者账号ID
 // advertiserId: 广告主账号ID
-func (a *AdService) GetVivoToken(ctx context.Context, advertiserId string) (string, string) {
+func (a *AdService) GetToken(ctx context.Context, advertiserId string) (string, string) {
 	clientId := a.c.ClientId
 	key := getTokenRedisKey(clientId, advertiserId)
 	for i := 0; i < 3; i++ {

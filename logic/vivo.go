@@ -100,7 +100,7 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 	}
 	userid := d[AppUid]
 
-	accessToken, _ := v.svc.GetVivoToken(ctx, advertiserId)
+	accessToken, _ := v.svc.GetToken(ctx, advertiserId)
 	if accessToken == "" {
 		return errors.New("vivo callback empty access token")
 	}

@@ -28,7 +28,7 @@ type AdvertiserInfo struct {
 	ShowName    string `json:"showName"`
 }
 
-func queryVivoAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, error) {
+func queryAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
@@ -55,7 +55,7 @@ func queryVivoAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, er
 	}
 
 	if response.Code != 0 {
-		return nil, fmt.Errorf("queryVivoAdvertiser error: %s", response.Message)
+		return nil, fmt.Errorf("queryAdvertiser error: %s", response.Message)
 	}
 
 	return response, nil
