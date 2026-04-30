@@ -42,11 +42,15 @@ type BehaviorResponse struct {
 	Data    string `json:"data,omitempty"`
 }
 
-func BehaviorUpload(req *BehaviorRequest, accessToken string) (*BehaviorResponse, error) {
+func (a *AdService) BehaviorUpload(req *BehaviorRequest, accessToken string) (*BehaviorResponse, error) {
+	return behaviorUpload(a.c.Host, req, accessToken)
+}
+
+func behaviorUpload(host string, req *BehaviorRequest, accessToken string) (*BehaviorResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
-	url := fmt.Sprintf(VivoCallbackUrlV2, accessToken, ms, nonce)
+	url := fmt.Sprintf(buildMarketURL(host, vivoCallbackURLV2Format), accessToken, ms, nonce)
 
 	bts, err := json.Marshal(req)
 	if err != nil {

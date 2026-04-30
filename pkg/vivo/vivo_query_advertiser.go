@@ -28,12 +28,12 @@ type AdvertiserInfo struct {
 	ShowName    string `json:"showName"`
 }
 
-func queryVivoAdvertiser(accessToken string) (*AdvertiserQueryResponse, error) {
+func queryVivoAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
 
-	url := fmt.Sprintf(VivoAdvertiserQueryUrl, accessToken, ms, nonce)
+	url := fmt.Sprintf(buildMarketURL(host, vivoAdvertiserQueryURLFormat), accessToken, ms, nonce)
 	//fmt.Println(url)
 
 	resp, err := http.Get(url)

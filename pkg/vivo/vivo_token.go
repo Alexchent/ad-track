@@ -25,6 +25,10 @@ type AdService struct {
 }
 
 func NewAdService(c *Config) *AdService {
+	if c == nil {
+		c = &Config{}
+	}
+	c.Host = normalizeMarketHost(c.Host)
 	return &AdService{
 		c: c,
 	}
@@ -45,7 +49,7 @@ type AdvertiserToken struct {
 }
 
 func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
-	url := fmt.Sprintf(GetVivoTokenUrl, a.c.ClientId, a.c.ClientSecret, code)
+	url := fmt.Sprintf(buildMarketURL(a.c.Host, getVivoTokenURLFormat), a.c.ClientId, a.c.ClientSecret, code)
 	resp, err := http.Get(url)
 	if err != nil {
 		msg := "send http to get vivo token request fail"
@@ -77,7 +81,7 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 // SaveAccessToken 根据Authorization Code 生成token
 func (a *AdService) SaveAccessToken(ctx context.Context, token AdvertiserToken) error {
 	// 获取 广告主uuid
-	advertiser, err := queryVivoAdvertiser(token.AccessToken)
+	advertiser, err := queryVivoAdvertiser(a.c.Host, token.AccessToken)
 	if err != nil {
 		return err
 	}
@@ -132,7 +136,7 @@ func (a *AdService) SaveTokenToRedis(ctx context.Context, advertiserId string, t
 
 // RefreshToken 使用refresh_token刷新access_token
 func (a *AdService) RefreshToken(ctx context.Context, refreshToken string, advertiserId string) (*AdvertiserToken, error) {
-	url := fmt.Sprintf(RefreshVivoTokenUrl, a.c.ClientId, a.c.ClientSecret, refreshToken)
+	url := fmt.Sprintf(buildMarketURL(a.c.Host, refreshVivoTokenURLFormat), a.c.ClientId, a.c.ClientSecret, refreshToken)
 	resp, err := http.Get(url)
 	if err != nil {
 		msg := "send http to refresh vivo token request fail"

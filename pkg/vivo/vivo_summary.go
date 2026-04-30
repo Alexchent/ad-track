@@ -10,10 +10,6 @@ import (
 	"time"
 )
 
-const (
-	SummaryQueryUrl = "https://marketing-api.vivo.com.cn/openapi/v1/adstatement/summary/query?access_token=%s&timestamp=%d&nonce=%s&advertiser_id=%s"
-)
-
 type SummaryQueryRequest struct {
 	StartDate   string `json:"startDate"`
 	EndDate     string `json:"endDate"`
@@ -23,13 +19,17 @@ type SummaryQueryRequest struct {
 	Level       string `json:"level"`
 }
 
-func SummaryQuery(req SummaryQueryRequest, accessToken, AdvertiserId string) (map[string]interface{}, error) {
+func (a *AdService) SummaryQuery(req SummaryQueryRequest, accessToken, AdvertiserId string) (map[string]interface{}, error) {
+	return summaryQuery(a.c.Host, req, accessToken, AdvertiserId)
+}
+
+func summaryQuery(host string, req SummaryQueryRequest, accessToken, AdvertiserId string) (map[string]interface{}, error) {
 	ms := time.Now().UnixNano() / 1e6
 	qid := QidWithUnixTime()
 
 	bts, _ := json.Marshal(req)
 	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
-	url := fmt.Sprintf(SummaryQueryUrl, accessToken, ms, nonce, AdvertiserId)
+	url := fmt.Sprintf(buildMarketURL(host, summaryQueryURLFormat), accessToken, ms, nonce, AdvertiserId)
 	resp, err := http.Post(url, "Content-Type: application/json", bytes.NewBuffer(bts))
 	if err != nil {
 		return nil, err

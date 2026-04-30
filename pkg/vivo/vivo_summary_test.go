@@ -6,6 +6,7 @@ import (
 )
 
 func TestSummaryQuery(t *testing.T) {
+	svc := &AdService{}
 	t.Run("t1", func(t *testing.T) {
 		res := SummaryQueryRequest{
 			StartDate: time.Now().AddDate(0, 0, -1).Format("2006-01-02"),
@@ -19,7 +20,7 @@ func TestSummaryQuery(t *testing.T) {
 			//Level:       "CAMPAIGN",
 			Level: "ACCOUNT",
 		}
-		_, err := SummaryQuery(res, "", "")
+		_, err := svc.SummaryQuery(res, "", "")
 		if err != nil {
 			t.Fatalf("query fail %s", err.Error())
 		}

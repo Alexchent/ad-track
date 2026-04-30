@@ -132,7 +132,7 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 
 	bts, _ := json.Marshal(req)
 
-	response, err := vivo.BehaviorUpload(&req, accessToken)
+	response, err := v.svc.BehaviorUpload(&req, accessToken)
 	if err != nil {
 		return err
 	}
