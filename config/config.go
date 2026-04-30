@@ -10,8 +10,9 @@ type Config struct {
 }
 
 type App struct {
-	Port string
-	Env  string `json:",optional"`
+	Port        string
+	Env         string `json:",optional"`
+	CachePrefix string `json:",optional"`
 }
 
 type RedisConfig struct {

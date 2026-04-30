@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"crypto/md5"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,7 +21,7 @@ func AttributeReport(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 		}
 
 		logicSvc := logic.NewClick(svcCtx.Config)
-		clickData, matchedKey, err := findClickData(c.Request.Context(), logicSvc, oaid, imei)
+		clickData, _, err := findClickData(c.Request.Context(), logicSvc, oaid, imei)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"code": 1, "msg": err.Error()})
 			return
@@ -41,15 +39,6 @@ func AttributeReport(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 
 		clickData[logic.AppUid] = c.Query("user_id")
 		clickData[logic.PkgName] = c.Query("package_name")
-		if oaid != "" {
-			clickData[logic.Oaid] = normalizeDeviceKey(oaid)
-		}
-		if imei != "" {
-			clickData[logic.Imei] = normalizeDeviceKey(imei)
-		}
-		if clickData[logic.Oaid] == "" && clickData[logic.Imei] == "" {
-			clickData[matchedKeyToField(matchedKey)] = matchedKey
-		}
 
 		var api logic.Attribute
 		if strings.Contains(strings.ToLower(channel), "vivo") {
@@ -64,8 +53,8 @@ func AttributeReport(svcCtx *svc.ServiceContext) gin.HandlerFunc {
 	}
 }
 
-func findClickData(ctx context.Context, logicSvc *logic.Click, oaid, imei string) (map[string]string, string, error) {
-	for _, key := range deviceKeyCandidates(oaid, imei) {
+func findClickData(ctx context.Context, logicSvc *logic.Click, deviceIds ...string) (map[string]string, string, error) {
+	for _, key := range deviceIds {
 		data, err := logicSvc.GetData(ctx, key)
 		if err != nil {
 			return nil, "", err
@@ -75,40 +64,4 @@ func findClickData(ctx context.Context, logicSvc *logic.Click, oaid, imei string
 		}
 	}
 	return nil, "", nil
-}
-
-func deviceKeyCandidates(oaid, imei string) []string {
-	keys := make([]string, 0, 4)
-	addKey := func(key string) {
-		if key == "" {
-			return
-		}
-		for _, existing := range keys {
-			if existing == key {
-				return
-			}
-		}
-		keys = append(keys, key)
-	}
-
-	addKey(normalizeDeviceKey(oaid))
-	addKey(oaid)
-	addKey(normalizeDeviceKey(imei))
-	addKey(imei)
-	return keys
-}
-
-func normalizeDeviceKey(deviceKey string) string {
-	deviceKey = strings.TrimSpace(deviceKey)
-	if deviceKey == "" || len(deviceKey) == 32 || len(deviceKey) == 64 {
-		return deviceKey
-	}
-	return fmt.Sprintf("%x", md5.Sum([]byte(deviceKey)))
-}
-
-func matchedKeyToField(matchedKey string) string {
-	if len(matchedKey) == 64 {
-		return logic.Oaid
-	}
-	return logic.Imei
 }

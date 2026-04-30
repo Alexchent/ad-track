@@ -11,10 +11,9 @@ import (
 	"github.com/Alexchent/ad-track/pkg/logger"
 	"github.com/Alexchent/ad-track/svc"
 	"github.com/fvbock/endless"
-	"github.com/zeromicro/go-zero/core/conf"
-
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/zeromicro/go-zero/core/conf"
 )
 
 var configFile = flag.String("f", "conf.yaml", "the config file")
@@ -32,7 +31,6 @@ func main() {
 		MaxAge:   c.Log.MaxAge,
 		Compress: c.Log.Compress,
 	})
-
 	svcCtx := svc.NewServiceContext(c)
 
 	router := gin.New()

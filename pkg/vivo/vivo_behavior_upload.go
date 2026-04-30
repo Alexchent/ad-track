@@ -22,10 +22,11 @@ var (
 )
 
 type BehaviorRequest struct {
-	SrcType string     `json:"srcType,omitempty"`
-	PkgName string     `json:"pkgName,omitempty"`
-	SrcId   string     `json:"srcId,omitempty"` // 源ID
-	Data    []DataList `json:"dataList,omitempty"`
+	SrcType  string     `json:"srcType,omitempty"`
+	PkgName  string     `json:"pkgName,omitempty"`
+	SrcId    string     `json:"srcId,omitempty"` // 源ID
+	DataForm string     `json:"dataForm,omitempty" default:"1"`
+	Data     []DataList `json:"dataList,omitempty"`
 }
 
 type DataList struct {

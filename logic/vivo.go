@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/Alexchent/ad-track/config"
 	"github.com/Alexchent/ad-track/pkg/vivo"
+	"go.uber.org/zap"
 )
 
 const (
@@ -30,6 +32,7 @@ const (
 const (
 	Imei         = "imei"
 	Oaid         = "oaid"
+	Androidid    = "androidid"
 	Channel      = "channel"
 	AppUid       = "app_uid"
 	PkgName      = "pkgName"
@@ -70,7 +73,7 @@ func (v *VivoApi) getSrcId(pkgName string) string {
 	return src
 }
 
-func getVivoUserID(d map[string]string) (string, string) {
+func getDeviceID(d map[string]string) (string, string) {
 	if d[Oaid] != "" {
 		if len(d[Oaid]) == 32 {
 			return userIdTypeOaidMD5, d[Oaid]
@@ -102,7 +105,8 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 
 	accessToken, _ := v.svc.GetToken(ctx, advertiserId)
 	if accessToken == "" {
-		return errors.New("vivo callback empty access token")
+		slog.Info("VivoApi get access token failed", zap.String("advertiser_id", advertiserId))
+		return fmt.Errorf("vivo callback advertiserId = %s empty accessToken", advertiserId)
 	}
 
 	srcId, ok := v.appList[d[PkgName]]
@@ -116,14 +120,14 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 		SrcId:   srcId,
 	}
 	ms := time.Now().UnixNano() / 1e6
-	userIdType, userId := getVivoUserID(d)
+	userIdType, deviceId := getDeviceID(d)
 	clickID := d["clickId"]
 	if clickID == "" {
 		clickID = d["ClickId"]
 	}
 	obj := &vivo.DataList{
 		UserIdType: userIdType,
-		UserId:     userId,
+		UserId:     deviceId,
 		ClickId:    clickID,
 		CvType:     uType,
 		CvTime:     ms,
@@ -137,8 +141,14 @@ func (v *VivoApi) callbackVivoBehavior(d map[string]string, uType string) error 
 		return err
 	}
 	if response.Code != 0 {
-		message := fmt.Sprintf("VIVO behaviorUpload fail: type-[%v], uid-[%v], params-[%s], code=%d, msg=%s", uType, userid, string(bts), response.Code, response.Message)
-		return fmt.Errorf("%s", message)
+		slog.Error("VIVO behaviorUpload fail",
+			slog.String("type", uType),
+			slog.Int64("code", response.Code),
+			slog.String("message", response.Message),
+			slog.String("userId", userid),
+			slog.String("clickId", clickID),
+			slog.String("params", string(bts)))
+		return fmt.Errorf("VIVO behaviorUpload fail code=%d message=%s", response.Code, response.Message)
 	}
 	return nil
 }

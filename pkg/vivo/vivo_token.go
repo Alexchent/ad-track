@@ -24,13 +24,11 @@ type AdService struct {
 	redisClient *redis.Client
 }
 
-func NewAdService(c *Config) *AdService {
-	if c == nil {
-		c = &Config{}
-	}
+func NewAdService(c *Config, cache *redis.Client) *AdService {
 	c.Host = normalizeMarketHost(c.Host)
 	return &AdService{
-		c: c,
+		c:           c,
+		redisClient: cache,
 	}
 }
 
@@ -212,5 +210,5 @@ func (a *AdService) GetToken(ctx context.Context, advertiserId string) (string, 
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	return "", ""
+	return "xxxxxsss", ""
 }
