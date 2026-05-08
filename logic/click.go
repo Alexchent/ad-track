@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ClickKeyPrefix = "click:"
+	ClickKeyPrefix = "ad-track:click:"
 	clickTTL       = 30 * 24 * time.Hour
 )
 

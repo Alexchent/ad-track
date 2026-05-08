@@ -1,6 +1,49 @@
 # ad-track
 
-`ad-track` 是一个基于 Go + Gin 的广告归因回传服务，当前主要对接 vivo 营销开放平台。服务接收广告平台点击监测数据，将设备标识与点击参数写入 Redis；当业务侧上报激活/归因请求时，服务根据 OAID 或 IMEI 查找点击数据，并调用 vivo 行为数据上传接口完成转化回传。
+[![Go](https://img.shields.io/badge/Go-1.25.8-00ADD8?logo=go)](https://go.dev/)
+[![Gin](https://img.shields.io/badge/Gin-HTTP%20Framework-00ADD8)](https://gin-gonic.com/)
+[![Redis](https://img.shields.io/badge/Redis-required-DC382D?logo=redis)](https://redis.io/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-metrics-E6522C?logo=prometheus)](https://prometheus.io/)
+
+`ad-track` 是一个基于 Go + Gin 的广告归因回传服务。当前实现主要对接 vivo 营销开放平台：服务接收广告平台点击监测数据，将设备标识与点击参数写入 Redis；当业务侧上报激活/归因请求时，服务根据 OAID 或 IMEI 匹配点击数据，并调用 vivo 行为数据上传接口完成转化回传。
+
+> 当前项目仍以 vivo 归因为核心场景。多渠道归因、自动 token 刷新、完整部署清单等能力尚未完整实现，详见 [Roadmap](#roadmap) 与 [注意事项](#注意事项)。
+
+## 目录
+
+- [ad-track](#ad-track)
+  - [目录](#目录)
+  - [功能特性](#功能特性)
+  - [架构概览](#架构概览)
+  - [技术栈](#技术栈)
+  - [项目结构](#项目结构)
+  - [快速开始](#快速开始)
+    - [环境要求](#环境要求)
+    - [安装依赖](#安装依赖)
+    - [创建配置文件](#创建配置文件)
+    - [本地运行](#本地运行)
+    - [构建运行](#构建运行)
+    - [验证服务](#验证服务)
+  - [配置说明](#配置说明)
+  - [HTTP API](#http-api)
+    - [健康检查](#健康检查)
+    - [Prometheus 指标](#prometheus-指标)
+    - [vivo 授权回调](#vivo-授权回调)
+    - [vivo 点击监测接收](#vivo-点击监测接收)
+    - [归因回传](#归因回传)
+  - [vivo 回传字段说明](#vivo-回传字段说明)
+  - [数据存储](#数据存储)
+    - [点击数据](#点击数据)
+    - [vivo Token](#vivo-token)
+  - [日志与链路追踪](#日志与链路追踪)
+  - [监控指标](#监控指标)
+  - [平滑重启](#平滑重启)
+  - [测试](#测试)
+  - [贡献指南](#贡献指南)
+    - [Commit 建议](#commit-建议)
+  - [Roadmap](#roadmap)
+  - [注意事项](#注意事项)
+  - [License](#license)
 
 ## 功能特性
 
@@ -12,6 +55,33 @@
 - Gin HTTP 服务，支持 request id、访问日志、健康检查、Prometheus 指标接口。
 - 使用 `endless` 支持平滑重启与优雅关闭。
 - 使用 `slog` + `lumberjack` 输出结构化日志并支持日志轮转。
+
+## 架构概览
+
+```text
+ad platform / vivo click callback
+        |
+        v
+POST /vivo/click
+        |
+        v
+Redis click:<oaid|imei>  <--------------------+
+        |                                      |
+        |                                      |
+business activation/report                     |
+        |                                      |
+        v                                      |
+GET /report?oaid=...&imei=...&package_name=...+
+        |
+        v
+match click data -> resolve vivo token -> upload ACTIVATION behavior to vivo
+```
+
+核心流程：
+
+1. `/vivo/click` 接收点击监测数据，将点击参数按设备 ID 写入 Redis。
+2. `/vivo/auth` 使用 vivo 授权码换取广告主 token，并将 token 写入 Redis。
+3. `/report` 根据 OAID / IMEI 查询点击数据，匹配 vivo 流量后调用 vivo 行为上传接口。
 
 ## 技术栈
 
@@ -54,27 +124,25 @@
 
 ## 快速开始
 
-### 1. 准备依赖
+### 环境要求
 
-- Go 环境
-- Redis 服务
+- Go 1.25.8 或兼容版本
+- Redis 6.x+
 - vivo 营销开放平台应用信息：
   - `client_id`
   - `client_secret`
   - 广告主授权码
   - 应用包名与 vivo `srcId` 映射
 
-### 2. 安装依赖
+### 安装依赖
 
 ```bash
 go mod tidy
 ```
 
-### 3. 创建配置文件
+### 创建配置文件
 
 服务默认读取当前目录下的 `conf.yaml`，也可以通过 `-f` 指定配置文件路径。
-
-示例：
 
 ```yaml
 Port: ":8080"
@@ -105,48 +173,60 @@ VIVO:
     "com.example.app": "your-vivo-src-id"
 ```
 
-### 4. 启动服务
+### 本地运行
 
 ```bash
 go run . -f conf.yaml
 ```
 
-构建后运行：
+启动成功后控制台会输出类似内容：
+
+```text
+服务启动, pid=<pid>, adder=:8080
+```
+
+### 构建运行
 
 ```bash
 go build -o ad-track .
 ./ad-track -f conf.yaml
 ```
 
-启动成功后控制台会输出：
+### 验证服务
+
+```bash
+curl http://127.0.0.1:8080/health
+```
+
+预期响应：
 
 ```text
-服务启动, pid=<pid>, adder=:8080
+ok
 ```
 
 ## 配置说明
 
-| 配置项 | 类型 | 说明 |
-| --- | --- | --- |
-| `Port` | string | HTTP 监听地址，例如 `:8080` |
-| `Env` | string | 运行环境，可选 |
-| `CachePrefix` | string | 缓存前缀，可选 |
-| `Redis.Addr` | string | Redis 地址 |
-| `Redis.Password` | string | Redis 密码 |
-| `Redis.Db` | int | Redis DB |
-| `MySQL.DSN` | string | MySQL DSN，当前代码中暂未使用 |
-| `Log.Filename` | string | 日志文件路径 |
-| `Log.Encoding` | string | 日志格式，支持 `json`、`console` |
-| `Log.Level` | string | 日志级别，支持 `debug`、`info`、`warn`、`error`、`fatal` |
-| `Log.MaxSize` | int | 单个日志文件最大大小，单位 MB |
-| `Log.MaxAge` | int | 日志保留天数 |
-| `Log.Compress` | bool | 是否压缩历史日志 |
-| `VIVO.Host` | string | vivo 营销 API 地址，空值时使用官方默认地址 |
-| `VIVO.ClientId` | string | vivo 开放平台 Client ID |
-| `VIVO.ClientSecret` | string | vivo 开放平台 Client Secret |
-| `VIVO.APP` | map | 应用包名到 vivo `srcId` 的映射 |
+| 配置项 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `Port` | string | 是 | HTTP 监听地址，例如 `:8080` |
+| `Env` | string | 否 | 运行环境 |
+| `CachePrefix` | string | 否 | 缓存前缀 |
+| `Redis.Addr` | string | 是 | Redis 地址 |
+| `Redis.Password` | string | 否 | Redis 密码 |
+| `Redis.Db` | int | 否 | Redis DB |
+| `MySQL.DSN` | string | 否 | MySQL DSN，当前代码中暂未使用 |
+| `Log.Filename` | string | 是 | 日志文件路径 |
+| `Log.Encoding` | string | 否 | 日志格式，支持 `json`、`console` |
+| `Log.Level` | string | 否 | 日志级别，支持 `debug`、`info`、`warn`、`error`、`fatal` |
+| `Log.MaxSize` | int | 否 | 单个日志文件最大大小，单位 MB |
+| `Log.MaxAge` | int | 否 | 日志保留天数 |
+| `Log.Compress` | bool | 否 | 是否压缩历史日志 |
+| `VIVO.Host` | string | 否 | vivo 营销 API 地址，空值时使用官方默认地址 |
+| `VIVO.ClientId` | string | 是 | vivo 开放平台 Client ID |
+| `VIVO.ClientSecret` | string | 是 | vivo 开放平台 Client Secret |
+| `VIVO.APP` | map | 是 | 应用包名到 vivo `srcId` 的映射 |
 
-## HTTP 接口
+## HTTP API
 
 ### 健康检查
 
@@ -391,6 +471,42 @@ go test ./...
 pkg/vivo/vivo_summary_test.go
 ```
 
+## 贡献指南
+
+欢迎提交 Issue 和 Pull Request。建议在贡献前遵循以下流程：
+
+1. Fork 本仓库并创建特性分支。
+2. 保持代码风格与现有项目一致。
+3. 为新增逻辑补充必要的单元测试或说明验证方式。
+4. 运行测试并确保通过：
+
+```bash
+go test ./...
+```
+
+5. 提交 PR 时说明变更动机、实现方式、影响范围和测试结果。
+
+### Commit 建议
+
+推荐使用语义化提交信息：
+
+```text
+feat: add new attribution channel
+fix: handle missing vivo token
+docs: update deployment guide
+test: add click storage tests
+```
+
+## Roadmap
+
+- [ ] 提供 `conf.example.yaml` 示例配置文件。
+- [ ] 注册并验证 `middleware.PrometheusMetrics()`，完善接口维度指标采集。
+- [ ] 明确或修复 vivo token 缺失时的 fallback 行为。
+- [ ] 启用并测试 vivo token 自动刷新逻辑。
+- [ ] 抽象多渠道归因接口，支持更多广告平台。
+- [ ] 增加 Redis 与 vivo 回传流程的集成测试。
+- [ ] 补充 Dockerfile、Compose 或 Kubernetes 部署示例。
+
 ## 注意事项
 
 - `conf.yaml` 未提交到仓库，需要部署时自行创建。
@@ -399,3 +515,8 @@ pkg/vivo/vivo_summary_test.go
 - vivo access token 需要先通过 `/vivo/auth` 写入 Redis，否则归因回传无法获取 token。
 - 当前 `GetToken` 中自动刷新 token 的代码处于注释状态，生产环境需关注 token 过期后的续期策略。
 - `middleware.PrometheusMetrics()` 已实现但当前入口未注册，如需接口维度指标请在路由初始化时添加。
+- 请勿将真实的 `client_secret`、授权码、token 或生产 Redis 密码提交到仓库。
+
+## License
+
+当前仓库尚未包含明确的开源许可证文件。若计划作为正式开源项目发布，请在仓库根目录添加 `LICENSE` 文件，并在本节声明对应许可证，例如 MIT、Apache-2.0 或 GPL-3.0。
