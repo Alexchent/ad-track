@@ -1,7 +1,6 @@
 package vivo
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -28,10 +27,13 @@ type AdvertiserInfo struct {
 	ShowName    string `json:"showName"`
 }
 
+func (a *AdService) QueryAdvertiser(token string) (*AdvertiserQueryResponse, error) {
+	return queryAdvertiser(a.c.Host, token)
+}
+
 func queryAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, error) {
 	ms := time.Now().UnixNano() / 1e6
-	qid := QidWithUnixTime()
-	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
+	nonce := MakeNonce()
 
 	url := fmt.Sprintf(buildMarketURL(host, vivoAdvertiserQueryURLFormat), accessToken, ms, nonce)
 	//fmt.Println(url)

@@ -2,12 +2,17 @@ package vivo
 
 import (
 	"bytes"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
+)
+
+const (
+	LevelACCOUNT  = "ACCOUNT"
+	LevelCREATIVE = "CREATIVE"
+	LevelCAMPAIGN = "CAMPAIGN"
 )
 
 type SummaryQueryRequest struct {
@@ -25,10 +30,9 @@ func (a *AdService) SummaryQuery(req SummaryQueryRequest, accessToken, Advertise
 
 func summaryQuery(host string, req SummaryQueryRequest, accessToken, AdvertiserId string) (map[string]interface{}, error) {
 	ms := time.Now().UnixNano() / 1e6
-	qid := QidWithUnixTime()
 
 	bts, _ := json.Marshal(req)
-	nonce := fmt.Sprintf("%x", md5.Sum([]byte(qid)))
+	nonce := MakeNonce()
 	url := fmt.Sprintf(buildMarketURL(host, summaryQueryURLFormat), accessToken, ms, nonce, AdvertiserId)
 	resp, err := http.Post(url, "Content-Type: application/json", bytes.NewBuffer(bts))
 	if err != nil {
