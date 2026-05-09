@@ -71,6 +71,8 @@ func behaviorUpload(host string, req *BehaviorRequest, accessToken string) (*Beh
 	return response, nil
 }
 
+// MakeNonce 生成不超过32个字符的随机数
 func MakeNonce() string {
+	//  随机字串标识，不超过32个字符，需保证全局唯一性。
 	return uuid.MakeNonce()
 }
