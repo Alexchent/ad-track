@@ -45,5 +45,5 @@ type VIVOConfig struct {
 	Host         string            `json:"host"`
 	ClientId     string            `json:"client_id"`     // 从 vivo 开放平台https://open-ad.vivo.com.cn/获取
 	ClientSecret string            `json:"client_secret"` // 从 vivo 开放平台https://open-ad.vivo.com.cn/获取
-	APP          map[string]string `json:"APP"`           // 授权的广告主下，事件源，从vivo营销平台https://ad.vivo.com.cn/marketing/property/event-manage 获取
+	APP          map[string]string `json:"APP"`           // 授权的广告主下，事件包名 与 事件源ID 映射，从vivo营销平台https://ad.vivo.com.cn/marketing/property/event-manage 获取
 }

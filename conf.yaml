@@ -22,4 +22,4 @@ VIVO:
   client_id: "your_client_id"
   client_secret: "your_client_secret"
   APP:
-    com.demo.pkgname: ds-20260408000 # vivo 营销平台 —— 事件管理 ——— 事件源
+    com.demo.pkgname: ds-20260408000 # 事件包与事件源的映射  来源：vivo 营销平台 —— 事件管理 ——— 事件源
