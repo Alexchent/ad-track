@@ -19,7 +19,6 @@ func init() {
 		c: &Config{
 			Host: "https://marketing-api.vivo.com.cn",
 		},
-		AccessToken: token,
 	}
 }
 

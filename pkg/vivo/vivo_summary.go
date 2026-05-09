@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -39,7 +39,7 @@ func summaryQuery(host string, req SummaryQueryRequest, accessToken, AdvertiserI
 		return nil, err
 	}
 
-	result, err := ioutil.ReadAll(resp.Body)
+	result, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	fmt.Println(string(result))
 

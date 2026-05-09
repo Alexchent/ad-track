@@ -3,7 +3,7 @@ package vivo
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -42,7 +42,7 @@ func queryAdvertiser(host, accessToken string) (*AdvertiserQueryResponse, error)
 	if err != nil {
 		return nil, err
 	}
-	result, err := ioutil.ReadAll(resp.Body)
+	result, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 
 	if err != nil {

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
@@ -20,7 +20,6 @@ type Config struct {
 
 type AdService struct {
 	c           *Config
-	AccessToken string `json:"access_token"`
 	redisClient *redis.Client
 }
 
@@ -32,7 +31,7 @@ func NewAdService(c *Config, cache *redis.Client) *AdService {
 	}
 }
 
-type VivoRepsonse struct {
+type FetchTokenResponse struct {
 	Code    int64  `json:"code,omitempty"`
 	Message string `json:"message,omitempty"`
 	Data    AdvertiserToken
@@ -46,7 +45,7 @@ type AdvertiserToken struct {
 	RefreshTokenDate int64  `json:"refresh_token_date,omitempty"` // 时间戳(毫秒),refreshTokenDate截止的有效日期
 }
 
-func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
+func (a *AdService) GetAccessToken(code string) (*FetchTokenResponse, error) {
 	url := fmt.Sprintf(buildMarketURL(a.c.Host, getVivoTokenURLFormat), a.c.ClientId, a.c.ClientSecret, code)
 	resp, err := http.Get(url)
 	if err != nil {
@@ -55,13 +54,13 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		msg := "read vivo token response fail," + err.Error()
 		return nil, errors.New(msg)
 	}
 
-	response := &VivoRepsonse{}
+	response := &FetchTokenResponse{}
 	err = json.Unmarshal(data, response)
 	if err != nil {
 		msg := "json unmarshal  vivo struct fail," + err.Error()
@@ -79,7 +78,7 @@ func (a *AdService) GetAccessToken(code string) (*VivoRepsonse, error) {
 // SaveAccessToken 根据Authorization Code 生成token
 func (a *AdService) SaveAccessToken(ctx context.Context, token AdvertiserToken) error {
 	// 获取 广告主uuid
-	advertiser, err := queryAdvertiser(a.c.Host, token.AccessToken)
+	advertiser, err := a.QueryAdvertiser(token.AccessToken)
 	if err != nil {
 		return err
 	}
@@ -140,14 +139,14 @@ func (a *AdService) RefreshToken(ctx context.Context, refreshToken string, adver
 		msg := "send http to refresh vivo token request fail"
 		return nil, errors.New(msg)
 	}
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		msg := "read vivo refresh token response fail," + err.Error()
 		return nil, errors.New(msg)
 	}
 
-	response := &VivoRepsonse{}
+	response := &FetchTokenResponse{}
 	err = json.Unmarshal(data, response)
 
 	if err != nil {
